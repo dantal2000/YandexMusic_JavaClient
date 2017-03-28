@@ -33,7 +33,7 @@ public class Launcher extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinHeight(594);
         primaryStage.setMinWidth(543);
-        primaryStage.setTitle("Player v 0.1 alpha");
+        primaryStage.setTitle("Player v 0.2 alpha");
         createUI(root, scene);
         primaryStage.show();
     }
