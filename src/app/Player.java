@@ -29,7 +29,6 @@ public class Player {
     private MediaPlayer currentMediaPlayer;
     private InfoBar infoBar;
 
-    private int changedId;
     private WaitingThread waitingThread;
 
     public Player(Pane playerPane, LinkedList<Track> tracks) {
@@ -100,12 +99,6 @@ public class Player {
     public void playNextTrack() {
         if (currentTrackId < tracks.size() - 1) {
             currentTrackId++;
-            if (currentTrackId == 1 && currentTrack == null) {
-                currentTrackId--;
-                currentTrack = tracks.get(currentTrackId);
-            }
-            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
-            changedId = currentTrackId;
             playCurrentTrack();
         }
     }
@@ -113,8 +106,6 @@ public class Player {
     public void playPreviousTrack() {
         if (currentTrackId > 0) {
             currentTrackId--;
-            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
-            changedId = currentTrackId;
             playCurrentTrack();
         }
     }
@@ -144,8 +135,6 @@ public class Player {
     public void setCurrentTrack(Track track) {
         if (tracks.contains(track)) {
             currentTrackId = tracks.indexOf(track);
-            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
-            changedId = currentTrackId;
             playCurrentTrack();
         }
     }
