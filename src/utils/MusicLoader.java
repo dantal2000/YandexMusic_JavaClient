@@ -1,5 +1,7 @@
 package utils;
 
+import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 import javafx.scene.media.Media;
 import org.json.JSONObject;
 
@@ -22,116 +24,115 @@ public class MusicLoader {
             messagePrinter.println("Переданные параметры = {" + trackId + ", " + dbg + ", " + refresh + "}");
             String pathname = "cache/" + trackId + ".mp3";
             File cachedMedia = new File(pathname);
-            if (!cachedMedia.exists() || refresh) {
 
-                if (cachedMedia.getParentFile().mkdirs() | cachedMedia.createNewFile())
-                    messagePrinter.println("Файл " + pathname + " успешно создан");
-                else messagePrinter.println("Файл " + pathname + " будет перезаписан");
+            if (cachedMedia.getParentFile().mkdirs() | cachedMedia.createNewFile())
+                messagePrinter.println("Файл " + pathname + " успешно создан");
+            else messagePrinter.println("Файл " + pathname + " будет перезаписан");
 
-                String firstUrl = "https://music.yandex.ru/api/v2.1/handlers/track/" + trackId + "/track/download/m?hq=1";
-                List<String[]> firstAdditionalHeaders = new LinkedList<>();
-                firstAdditionalHeaders.add(new String[]{"X-Retpath-Y", "https://music.yandex.ru/"});
+            String firstUrl = "https://music.yandex.ru/api/v2.1/handlers/track/" + trackId + "/track/download/m?hq=1";
+            List<String[]> firstAdditionalHeaders = new LinkedList<>();
+            firstAdditionalHeaders.add(new String[]{"X-Retpath-Y", "https://music.yandex.ru/"});
 
-                Connector.CombinatedData<Map<String, List<String>>, InputStream> combinatedData =
-                        Connector.connect(firstUrl, dbg, firstAdditionalHeaders);
-                InputStream inputStream = combinatedData != null ? combinatedData.getValue2() : null;
+            Connector.CombinatedData<Map<String, List<String>>, InputStream> combinatedData =
+                    Connector.connect(firstUrl, dbg, firstAdditionalHeaders);
+            InputStream inputStream = combinatedData != null ? combinatedData.getValue2() : null;
 
-                messagePrinter.println("FirstUrl = " + firstUrl);
-                StringBuilder toStringBuilder = new StringBuilder();
-                firstAdditionalHeaders.forEach((String[] strings) -> toStringBuilder.append(Arrays.toString(strings)));
-                messagePrinter.println("FirstAdditionalHeaders = " + toStringBuilder.toString());
+            messagePrinter.println("FirstUrl = " + firstUrl);
+            StringBuilder toStringBuilder = new StringBuilder();
+            firstAdditionalHeaders.forEach((String[] strings) -> toStringBuilder.append(Arrays.toString(strings)));
+            messagePrinter.println("FirstAdditionalHeaders = " + toStringBuilder.toString());
 
-                if (inputStream != null) {
-                    messagePrinter.println("Соединение успешно");
+            if (inputStream != null) {
+                messagePrinter.println("Соединение успешно");
 
-                    String firstJsonString = readStringInputStream(inputStream).toString();
-                    messagePrinter.println("FIRST_JSON = " + firstJsonString);
+                String firstJsonString = readStringInputStream(inputStream).toString();
+                messagePrinter.println("FIRST_JSON = " + firstJsonString);
 
-                    JSONObject firstJSON = new JSONObject(firstJsonString);
-                    String src = firstJSON.getString("src");
-                    messagePrinter.println("Src = " + src);
+                JSONObject firstJSON = new JSONObject(firstJsonString);
+                String src = firstJSON.getString("src");
+                messagePrinter.println("Src = " + src);
 
-                    String secondUrl = src + "&format=json&external-domain=music.yandex.ru&overembed=no&__t=" + System.currentTimeMillis();
-                    messagePrinter.println("SecondUrl = " + secondUrl);
+                String secondUrl = src + "&format=json&external-domain=music.yandex.ru&overembed=no&__t=" + System.currentTimeMillis();
+                messagePrinter.println("SecondUrl = " + secondUrl);
 
-                    InputStream secondInputStream = Connector.connect(secondUrl, dbg);
-                    if (secondInputStream == null) throw new MyException();
+                InputStream secondInputStream = Connector.connect(secondUrl, dbg);
+                if (secondInputStream == null) throw new MyException();
 
-                    String secondJsonString = readStringInputStream(secondInputStream).toString();
-                    JSONObject secondJSON = new JSONObject(secondJsonString);
-                    messagePrinter.println("SECOND_JSON = " + secondJsonString);
+                String secondJsonString = readStringInputStream(secondInputStream).toString();
+                JSONObject secondJSON = new JSONObject(secondJsonString);
+                messagePrinter.println("SECOND_JSON = " + secondJsonString);
 
-                    String s, ts, path, host;
+                String s, ts, path, host;
 
-                    s = secondJSON.getString("s");
-                    ts = secondJSON.getString("ts");
-                    path = secondJSON.getString("path");
-                    host = secondJSON.getString("host");
+                s = secondJSON.getString("s");
+                ts = secondJSON.getString("ts");
+                path = secondJSON.getString("path");
+                host = secondJSON.getString("host");
 
-                    messagePrinter.println("SECOND_JSON_ELEMENTS = {");
-                    messagePrinter.println("\ts\t\t=\t" + s + ",");
-                    messagePrinter.println("\tts\t\t=\t" + ts + ",");
-                    messagePrinter.println("\tpath\t=\t" + path + ",");
-                    messagePrinter.println("\thost\t=\t" + host);
-                    messagePrinter.println("}");
+                messagePrinter.println("SECOND_JSON_ELEMENTS = {");
+                messagePrinter.println("\ts\t\t=\t" + s + ",");
+                messagePrinter.println("\tts\t\t=\t" + ts + ",");
+                messagePrinter.println("\tpath\t=\t" + path + ",");
+                messagePrinter.println("\thost\t=\t" + host);
+                messagePrinter.println("}");
 
-                    String md5Salt = "XGRlBW9FXlekgbPrRHuSiA";
+                String md5Salt = "XGRlBW9FXlekgbPrRHuSiA";
 
-                    MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-                    messageDigest.reset();
-                    String hashingString = md5Salt + path.substring(1, path.length()) + s;
-                    messagePrinter.println("HashingString = " + hashingString);
-                    messageDigest.update(hashingString.getBytes());
+                String hashingString = md5Salt + path.substring(1, path.length()) + s;
+                messagePrinter.println("HashingString = " + hashingString);
 
-                    byte[] digest = messageDigest.digest();
-                    BigInteger bigInteger = new BigInteger(1, digest);
-                    StringBuilder md5Hash = new StringBuilder(bigInteger.toString(16));
-                    while (md5Hash.length() < 32)
-                        md5Hash.insert(0, "0");
+                /*MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+                messageDigest.reset();
+                messageDigest.update(hashingString.getBytes());
 
-                    String md5HashString = md5Hash.toString();
-                    messagePrinter.println("Hash = " + md5HashString);
-                    String thirdUrl = "https://" + host + "/get-mp3/" + md5HashString + "/" + ts + path + "?track-id=" + trackId;
-                    messagePrinter.println("ThirdUrl = " + thirdUrl);
-                    LinkedList<String[]> additionalParams = new LinkedList<>();
-                    additionalParams.add(new String[]{"Accept-Encoding", "gzip, deflate"});
-                    Connector.CombinatedData<Map<String, List<String>>, InputStream> data = Connector.connect(thirdUrl, dbg, additionalParams);
-                    InputStream thirdInputStream = data != null ? data.getValue2() : null;
-                    String encoding;
-                    encoding = (data != null && data.getValue1().containsKey("Content-Encoding")) ? "gzip" : "deflate";
-                    messagePrinter.println("Encoding = " + encoding);
-                    if (thirdInputStream != null) {
-                        OutputStream outputStream = new FileOutputStream(cachedMedia);
-                        if (encoding.equals("gzip")) {
-                            GZIPInputStream gzipInputStream = new GZIPInputStream(thirdInputStream);
-                            int c;
-                            while ((c = gzipInputStream.read()) != -1)
-                                outputStream.write(c);
-                            outputStream.close();
-                            thirdInputStream.close();
-                        } else {
-                            int c;
-                            while ((c = thirdInputStream.read()) != -1)
-                                outputStream.write(c);
-                            outputStream.close();
-                            thirdInputStream.close();
-                        }
+                byte[] digest = messageDigest.digest();
+                BigInteger bigInteger = new BigInteger(1, digest);
+                StringBuilder md5Hash = new StringBuilder(bigInteger.toString(16));
+                while (md5Hash.length() < 32)
+                    md5Hash.insert(0, "0");
 
-                        return new Media(cachedMedia.toURI().toURL().toString());
+                String md5HashString = md5Hash.toString();*/
+                //String md5HashString = Hashing.md5().newHasher().putString(hashingString, Charsets.UTF_8).hash().toString();
+                String md5HashString = Hashing.md5().hashString(hashingString, Charsets.UTF_8).toString();
+                messagePrinter.println("Hash = " + md5HashString);
+                String thirdUrl = "https://" + host + "/get-mp3/" + md5HashString + "/" + ts + path + "?track-id=" + trackId;
+                messagePrinter.println("ThirdUrl = " + thirdUrl);
+                LinkedList<String[]> additionalParams = new LinkedList<>();
+                additionalParams.add(new String[]{"Accept-Encoding", "gzip, deflate"});
+                Connector.CombinatedData<Map<String, List<String>>, InputStream> data = Connector.connect(thirdUrl, dbg, additionalParams);
+                InputStream thirdInputStream = data != null ? data.getValue2() : null;
+                String encoding;
+                encoding = (data != null && data.getValue1().containsKey("Content-Encoding")) ? "gzip" : "deflate";
+                messagePrinter.println("Encoding = " + encoding);
+                if (thirdInputStream != null) {
+                    OutputStream outputStream = new FileOutputStream(cachedMedia);
+                    if (encoding.equals("gzip")) {
+                        GZIPInputStream gzipInputStream = new GZIPInputStream(thirdInputStream);
+                        int c;
+                        while ((c = gzipInputStream.read()) != -1)
+                            outputStream.write(c);
+                        outputStream.close();
+                        thirdInputStream.close();
                     } else {
-                        throw new MyException();
+                        int c;
+                        while ((c = thirdInputStream.read()) != -1)
+                            outputStream.write(c);
+                        outputStream.close();
+                        thirdInputStream.close();
                     }
+
+                    return new Media(cachedMedia.toURI().toURL().toString());
                 } else {
                     throw new MyException();
                 }
             } else {
-                messagePrinter.println("Медиа-файл " + pathname + " уже кэширован. Возврат кэшированного файла");
-                return new Media(cachedMedia.toURI().toURL().toString());
+                throw new MyException();
             }
+
         } catch (MyException e) {
             messagePrinter.println("Произошли неполадки... Возвращаем нулевое значение");
             return null;
-        } catch (IOException | NoSuchAlgorithmException e) {
+        } catch (IOException /*| NoSuchAlgorithmException*/ e) {
             messagePrinter.println("Произошла неисправимая ошибка! Возвращаем нулевое значение");
             messagePrinter.println(Arrays.toString(e.getStackTrace()));
             return null;
