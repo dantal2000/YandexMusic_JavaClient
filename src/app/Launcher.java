@@ -2,19 +2,19 @@ package app;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import structure.Track;
 import structure.TrackLoader;
 
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 
 public class Launcher extends Application {
@@ -25,7 +25,16 @@ public class Launcher extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        int version = 7;
+        try {
+            System.setProperty("file.encoding","UTF-8");
+            Field charset = Charset.class.getDeclaredField("defaultCharset");
+            charset.setAccessible(true);
+            charset.set(null,null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        int version = 8;
         String title = "Yandex Music. Version " + version;
 
         Pane root = new Pane();
@@ -48,9 +57,12 @@ public class Launcher extends Application {
     }
 
     private void createUI(Scene scene, Pane root) {
-        PostMonitor closeAnimationMonitor = getAnimationMonitor(root, scene);
+        BorderPane animationOfLoadingPane = getAnimationOfLoading();
+        animationOfLoadingPane.prefWidthProperty().bind(scene.widthProperty());
+        animationOfLoadingPane.prefHeightProperty().bind(scene.heightProperty());
+        root.getChildren().add(animationOfLoadingPane);
 
-        NotifyThread thread = new NotifyThread(closeAnimationMonitor, () -> {
+        Thread thread = new Thread(() -> {
             Pane container = new Pane();
             ScrollPane upSide = new ScrollPane();
             Pane downSide = new Pane();
@@ -61,55 +73,40 @@ public class Launcher extends Application {
             downSide.setMinHeight(downHeight);
             downSide.layoutYProperty().bind(scene.heightProperty().subtract(downHeight));
             downSide.prefWidthProperty().bind(scene.widthProperty());
-            downSide.setBackground(new Background(new BackgroundFill(Color.DARKGREY, null, null)));
+            downSide.setBackground(new Background(new BackgroundFill(Color.DARKGREY, CornerRadii.EMPTY, Insets.EMPTY)));
 
             upSide.prefWidthProperty().bind(scene.widthProperty());
             upSide.prefHeightProperty().bind(scene.heightProperty().subtract(downHeight));
-            Background upSideBackground = new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), null, null));
+            Background upSideBackground = new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY));
             upSide.setBackground(upSideBackground);
             upSide.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-            upSide.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
             scene.getStylesheets().add(getClass().getResource("css/scroll_pane.css").toExternalForm());
-
-
-            LinkedList<Track> trackList = TrackLoader.loadTracks();
 
             Pane scrollListContent = new Pane();
             scrollListContent.setBackground(upSideBackground);
             scrollListContent.prefWidthProperty().bind(scene.widthProperty());
             TrackAdder trackAdder = new TrackAdder(scrollListContent);
-            trackList.forEach(trackAdder::add);
+
+            LinkedList<Track> tracks = TrackLoader.loadTracks();
+            tracks.forEach(trackAdder::add);
 
             upSide.setContent(scrollListContent);
+            new Player(downSide, tracks);
 
-            Player player = new Player(downSide, trackList);
-
-            Platform.runLater(() -> root.getChildren().add(container));
+            Platform.runLater(() -> {
+                root.getChildren().remove(animationOfLoadingPane);
+                root.getChildren().add(container);
+            });
         });
-        thread.runThread();
+        thread.setDaemon(true);
+        thread.start();
     }
 
-    private PostMonitor getAnimationMonitor(Pane root, Scene scene) {
-        final BorderPane animationBorderPane = getLoadingAnimationBorderPane(scene);
-        root.getChildren().add(animationBorderPane);
-        String threadName = "Loading_Animation";
-        PostMonitor loading_animation = new PostMonitor(() -> Platform.runLater(() -> {
-            root.getChildren().remove(animationBorderPane);
-        }), threadName);
-        loading_animation.runMonitor();
-        return loading_animation;
-    }
-
-    private BorderPane getLoadingAnimationBorderPane(Scene scene) {
-        String gifPath = "img/loading.gif";
-
-        Image loadingGif = new Image(getClass().getResourceAsStream(gifPath));
-        ImageView animationView = new ImageView(loadingGif);
-
-        BorderPane borderPane = new BorderPane(animationView);
-        borderPane.prefWidthProperty().bind(scene.widthProperty());
-        borderPane.prefHeightProperty().bind(scene.heightProperty());
-
-        return borderPane;
+    private BorderPane getAnimationOfLoading() {
+        BorderPane centeredImageView = new BorderPane();
+        Image image = new Image(getClass().getResourceAsStream("img/loading.gif"));
+        ImageView imageView = new ImageView(image);
+        centeredImageView.setCenter(imageView);
+        return centeredImageView;
     }
 }

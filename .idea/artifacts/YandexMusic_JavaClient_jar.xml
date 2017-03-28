@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="YandexMusic_JavaClient:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/YandexMusic_JavaClient_jar</output-path>
+    <root id="archive" name="YandexMusic_JavaClient.jar">
+      <element id="module-output" name="YandexMusic_JavaClient" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/json/json/20160810/json-20160810.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

@@ -1,13 +1,14 @@
 package app;
 
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -16,181 +17,188 @@ import structure.Track;
 
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 
 public class Player {
-    private Pane playerPane;
     private LinkedList<Track> tracks;
 
-    private ListIterator<Track> iterator;
     private Track currentTrack;
-    private boolean playingNow;
+    private int currentTrackId;
+
+    private MediaPlayer currentMediaPlayer;
+    private InfoBar infoBar;
 
     public Player(Pane playerPane, LinkedList<Track> tracks) {
-        this.playerPane = playerPane;
         this.tracks = tracks;
-        iterator = tracks.listIterator();
-        if (tracks.size() != 0) currentTrack = tracks.get(0);
-        playingNow = false;
 
-        BorderPane prevTrackButton = new BorderPane();
-        BorderPane startTrackButton = new BorderPane();
-        BorderPane nextTrackButton = new BorderPane();
+        if (tracks.size() == 0) throw new NullPointerException("tracks.size() == 0");
+        else currentTrackId = 0;
 
-        List<BorderPane> buttons = new LinkedList<>();
-        Collections.addAll(buttons, prevTrackButton, startTrackButton, nextTrackButton);
-
-        for (int i = 0; i < buttons.size(); i++) controlPanelButtonInit(buttons, i);
-
-        startTrackButton.setOnMouseClicked(event -> {
-            if (currentTrack != null)
-                start();
+        Pane controlBar = ControlBar.getBar();
+        controlBar.setLayoutX(31);
+        controlBar.setLayoutY(12);
+        ControlBar.previous.setOnMouseClicked(event -> {
+            if (currentTrackId > 0) playPreviousTrack();
         });
-        prevTrackButton.setOnMouseClicked(event -> prevTrack());
-        nextTrackButton.setOnMouseClicked(event -> nextTrack());
-
-        Pane buttonBar = new Pane(prevTrackButton, startTrackButton, nextTrackButton);
-        buttonBar.setLayoutX(31);
-        buttonBar.setLayoutY(12);
-        playerPane.getChildren().add(buttonBar);
-
-        Pane infoBarContainer = new Pane();
-        int space = 30;
-        infoBarContainer.setLayoutX(220);
-        infoBarContainer.setMinHeight(playerPane.getMinHeight());
-        infoBarContainer.setMaxHeight(playerPane.getMinHeight());
-        infoBarContainer.prefWidthProperty().bind(playerPane.widthProperty().subtract(infoBarContainer.getLayoutX() + 15));
-        playerPane.getChildren().add(infoBarContainer);
-
-        infoBar = new InfoBar(infoBarContainer);
-        if (currentTrack == null || currentTrack.getTitle() == null) infoBar.setTitle("NaN");
-        else
-            infoBar.setTitle(currentTrack.getTitle());
-    }
-
-    private void controlPanelButtonInit(List<BorderPane> buttons, int i) {
-        BackgroundFill fill = new BackgroundFill(Color.valueOf("#cdcdcd"), null, null);
-        BorderPane button = buttons.get(i);
-        button.setBackground(new Background(fill));
-
-        int width = 45;
-        button.setMinWidth(width);
-        button.setMaxWidth(width);
-
-        int space = 12;
-        button.setLayoutX(i * (width + space));
-
-        int height = 36;
-        button.setMaxHeight(height);
-        button.setMinHeight(height);
-
-        String imagePath;
-        switch (i) {
-            case 0:
-                imagePath = "img/back_shift.png";
-                break;
-            case 1:
-                imagePath = "img/start_shift.png";
-                break;
-            case 2:
-                imagePath = "img/next_shift.png";
-                break;
-            default:
-                imagePath = "img/loading.gif";
-        }
-        ImageView imageView = new ImageView(new Image(getClass().getResourceAsStream(imagePath)));
-        button.setCenter(imageView);
-        BackgroundFill hoverFill = new BackgroundFill(Color.LIGHTCYAN, null, null);
-        button.setOnMouseEntered(event -> button.setBackground(new Background(hoverFill)));
-        button.setOnMouseExited(event -> button.setBackground(new Background(fill)));
-    }
-
-    private InfoBar infoBar;
-    private MediaPlayer currentMediaPlayer;
-
-    private void start() {
-        if (currentMediaPlayer == null) {
-            currentMediaPlayer = new MediaPlayer(currentTrack.getMusic());
-        }
-        if (!playingNow) {
-            playingNow = true;
-            if (currentMediaPlayer.getStatus() != MediaPlayer.Status.PAUSED) {
-                currentMediaPlayer = new MediaPlayer(currentTrack.getMusic());
-                currentMediaPlayer.setOnReady(() -> {
-                    infoBar.bindSlider(currentMediaPlayer);
-                    infoBar.setTitle(currentTrack.getTitle());
-                    currentMediaPlayer.play();
-                    currentMediaPlayer.setOnEndOfMedia(() -> {
-                        if (nextPlay)
-                            nextTrack();
-                        playingNow = false;
-                    });
-                });
-            } else {
-                currentMediaPlayer.play();
-            }
-        } else {
-            currentMediaPlayer.pause();
-            playingNow = false;
-        }
-
-    }
-
-    private boolean nextPlay = true;
-
-    private void nextTrack() {
-        playingNow = false;
-        nextPlay = true;
-        if (currentMediaPlayer != null) {
-            currentMediaPlayer.stop();
-        }
-        if (iterator.hasNext()) {
-            currentTrack = iterator.next();
-            start();
-        }
-    }
-
-    private void prevTrack() {
-        playingNow = false;
-        nextPlay = false;
-        if (currentMediaPlayer != null) {
-            currentMediaPlayer.stop();
-        }
-        if (iterator.hasPrevious()) {
-            currentTrack = iterator.previous();
-            start();
-        }
-    }
-
-    static class InfoBar {
-        Label titleLabel = new Label();
-        Slider durationSlider = new Slider();
-
-        public InfoBar(Pane container) {
-            titleLabel.setFont(Font.font("Verdana", 14));
-            durationSlider.setLayoutY(35);
-            durationSlider.prefWidthProperty().bind(container.widthProperty().subtract(65));
-            container.getChildren().addAll(titleLabel, durationSlider);
-        }
-
-        public void bindSlider(MediaPlayer player) {
-            durationSlider.setMin(0);
-            double duration = player.getMedia().getDuration().toSeconds();
-            durationSlider.setMax(100);
-            player.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
-                if (!durationSlider.isPressed())
-                    durationSlider.setValue(newValue.toSeconds() / duration * 100);
-            });
-            durationSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
-                if (durationSlider.isPressed()) {
-                    player.seek(Duration.seconds(newValue.doubleValue() * duration / 100));
+        ControlBar.current.setOnMouseClicked(event -> {
+            if (currentMediaPlayer != null) {
+                switch (currentMediaPlayer.getStatus()) {
+                    case PAUSED:
+                        resumeCurrentTrack();
+                        break;
+                    case STOPPED:
+                        playCurrentTrack();
+                        break;
+                    default:
+                        pauseCurrentTrack();
+                        break;
                 }
-            });
+            } else playCurrentTrack();
+        });
+        ControlBar.next.setOnMouseClicked(event -> {
+            if (currentTrackId < tracks.size() - 1)
+                playNextTrack();
+        });
+
+        infoBar = new InfoBar();
+        Pane infoBarContainer = new Pane();
+        int infoBarContainerLayoutX = 159 + 31 + 30;
+        infoBarContainer.setLayoutX(infoBarContainerLayoutX);
+        infoBarContainer.prefWidthProperty().bind(playerPane.widthProperty().subtract(infoBarContainerLayoutX));
+
+        infoBar.setContainer(infoBarContainer);
+        Platform.runLater(() -> playerPane.getChildren().addAll(controlBar, infoBarContainer));
+    }
+
+    public void playCurrentTrack() {
+        currentTrack = tracks.get(currentTrackId);
+        if (currentMediaPlayer != null) currentMediaPlayer.stop();
+        infoBar.removeTrack();
+
+        Pane trackPane = currentTrack.getTrackPane();
+        trackPane.setBackground(new Background(new BackgroundFill(Color.LIMEGREEN, CornerRadii.EMPTY, Insets.EMPTY)));
+        currentMediaPlayer = new MediaPlayer(currentTrack.getMusic());
+        currentMediaPlayer.setOnReady(() -> {
+            infoBar.setTrack(currentTrack.getTitle(), currentMediaPlayer);
+            currentMediaPlayer.play();
+        });
+        currentMediaPlayer.setOnEndOfMedia(this::playNextTrack);
+    }
+
+    public void playNextTrack() {
+        if (currentTrackId < tracks.size() - 1) {
+            currentTrackId++;
+            currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            playCurrentTrack();
+        }
+    }
+
+    public void playPreviousTrack() {
+        if (currentTrackId > 0) {
+            currentTrackId--;
+            currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            playCurrentTrack();
+        }
+    }
+
+    public void pauseCurrentTrack() {
+        currentMediaPlayer.pause();
+    }
+
+    public void resumeCurrentTrack() {
+        currentMediaPlayer.play();
+    }
+
+    private static class InfoBar {
+        private Slider playSlider = new Slider(0, 100, 0);
+        private Slider volumeSlider = new Slider(0, 1, 1);
+        private BorderPane volumePane = new BorderPane(volumeSlider);
+        private Label titleLabel = new Label("NaN");
+
+        {
+            titleLabel.setFont(Font.font("Verdana", 14));
+            playSlider.setLayoutY(35);
+            volumeSlider.setOrientation(Orientation.VERTICAL);
+
+            volumePane.setMinSize(30, 30);
+            volumePane.setMaxSize(30, 30);
+            volumePane.setBackground(new Background(new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)));
+            volumePane.setLayoutY(13);
         }
 
-        public void setTitle(String title) {
-            titleLabel.setText(title);
+        public void setContainer(Pane container) {
+            playSlider.prefWidthProperty().bind(container.widthProperty().subtract(65));
+            volumePane.layoutXProperty().bind(playSlider.widthProperty().add(17));
+
+            container.getChildren().addAll(titleLabel, playSlider, volumePane);
+        }
+
+        public void setTrack(String trackTitle, MediaPlayer player) {
+            if (trackTitle != null) titleLabel.setText(trackTitle);
+            double duration = player.getMedia().getDuration().toSeconds();
+            ChangeListener<Duration> durationChangeListener = (observable, oldValue, newValue) ->
+                    playSlider.setValue(newValue.toSeconds() / duration * 100);
+            player.currentTimeProperty().addListener(durationChangeListener);
+
+            playSlider.setOnMousePressed(event ->
+                    player.currentTimeProperty().removeListener(durationChangeListener));
+            playSlider.setOnMouseReleased(event -> {
+                player.seek(Duration.seconds(playSlider.getValue() * duration / 100));
+                player.currentTimeProperty().addListener(durationChangeListener);
+            });
+            player.volumeProperty().bind(volumeSlider.valueProperty());
+        }
+
+        public void removeTrack() {
+            titleLabel.setText("NaN");
+            playSlider.setValue(0);
+        }
+    }
+
+    private static class ControlBar {
+        private static BorderPane previous = new BorderPane(), current = new BorderPane(), next = new BorderPane();
+        private static Pane container = new Pane();
+
+        static {
+            container.setMinSize(159, 36);
+            container.setMaxSize(159, 36);
+
+            LinkedList<BorderPane> buttons = new LinkedList<>();
+            Collections.addAll(buttons, previous, current, next);
+
+            BackgroundFill hoverFill = new BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY);
+            BackgroundFill fill = new BackgroundFill(Color.valueOf("#cdcdcd"), CornerRadii.EMPTY, Insets.EMPTY);
+            for (int i = 0; i < buttons.size(); i++) {
+                BorderPane button = buttons.get(i);
+                button.setMaxSize(45, 36);
+                button.setMinSize(45, 36);
+                button.setLayoutX(i * (45 + 12));
+                button.setBackground(new Background(new BackgroundFill(Color.valueOf("#cdcdcd"), null, null)));
+
+                button.setOnMouseEntered(event -> button.setBackground(new Background(hoverFill)));
+                button.setOnMouseExited(event -> button.setBackground(new Background(fill)));
+
+                String spritePath = "";
+                switch (i) {
+                    case 0:
+                        spritePath = "img/back_shift.png";
+                        break;
+                    case 1:
+                        spritePath = "img/start_shift.png";
+                        break;
+                    case 2:
+                        spritePath = "img/next_shift.png";
+                        break;
+                }
+
+                Image buttonImage = new Image(Player.class.getResourceAsStream(spritePath));
+                button.setCenter(new ImageView(buttonImage));
+            }
+
+            container.getChildren().addAll(previous, current, next);
+        }
+
+        public static Pane getBar() {
+            return container;
         }
     }
 }
