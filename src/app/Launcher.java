@@ -68,6 +68,7 @@ public class Launcher extends Application {
             Background upSideBackground = new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), null, null));
             upSide.setBackground(upSideBackground);
             upSide.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            upSide.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
             scene.getStylesheets().add(getClass().getResource("css/scroll_pane.css").toExternalForm());
 
 
