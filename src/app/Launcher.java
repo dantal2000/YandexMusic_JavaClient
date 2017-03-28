@@ -12,6 +12,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import structure.Track;
 import structure.TrackLoader;
+import utils.WaitingThread;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -26,10 +27,10 @@ public class Launcher extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            System.setProperty("file.encoding","UTF-8");
+            System.setProperty("file.encoding", "UTF-8");
             Field charset = Charset.class.getDeclaredField("defaultCharset");
             charset.setAccessible(true);
-            charset.set(null,null);
+            charset.set(null, null);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             e.printStackTrace();
         }
@@ -91,7 +92,13 @@ public class Launcher extends Application {
             tracks.forEach(trackAdder::add);
 
             upSide.setContent(scrollListContent);
-            new Player(downSide, tracks);
+            Player player = new Player(downSide, tracks);
+            WaitingThread waitingThread = new WaitingThread();
+            waitingThread.setOpening(() -> Platform.runLater(() -> root.getChildren().add(animationOfLoadingPane)));
+            waitingThread.setClosing(() -> Platform.runLater(() -> root.getChildren().remove(animationOfLoadingPane)));
+            player.setWaitingThread(waitingThread);
+
+            tracks.forEach(track -> track.getTrackPane().setOnMouseClicked(event -> player.setCurrentTrack(track)));
 
             Platform.runLater(() -> {
                 root.getChildren().remove(animationOfLoadingPane);
@@ -106,7 +113,11 @@ public class Launcher extends Application {
         BorderPane centeredImageView = new BorderPane();
         Image image = new Image(getClass().getResourceAsStream("img/loading.gif"));
         ImageView imageView = new ImageView(image);
-        centeredImageView.setCenter(imageView);
+        Pane backgroundPane = new Pane(imageView);
+        backgroundPane.setMinSize(image.getWidth(), image.getHeight());
+        backgroundPane.setMaxSize(image.getWidth(), image.getHeight());
+        backgroundPane.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+        centeredImageView.setCenter(backgroundPane);
         return centeredImageView;
     }
 }

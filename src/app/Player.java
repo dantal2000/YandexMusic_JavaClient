@@ -9,11 +9,13 @@ import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 import structure.Track;
+import utils.WaitingThread;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,6 +28,9 @@ public class Player {
 
     private MediaPlayer currentMediaPlayer;
     private InfoBar infoBar;
+
+    private int changedId;
+    private WaitingThread waitingThread;
 
     public Player(Pane playerPane, LinkedList<Track> tracks) {
         this.tracks = tracks;
@@ -70,24 +75,37 @@ public class Player {
     }
 
     public void playCurrentTrack() {
+        if (currentTrack != null)
+            currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
         currentTrack = tracks.get(currentTrackId);
         if (currentMediaPlayer != null) currentMediaPlayer.stop();
         infoBar.removeTrack();
 
         Pane trackPane = currentTrack.getTrackPane();
         trackPane.setBackground(new Background(new BackgroundFill(Color.LIMEGREEN, CornerRadii.EMPTY, Insets.EMPTY)));
-        currentMediaPlayer = new MediaPlayer(currentTrack.getMusic());
-        currentMediaPlayer.setOnReady(() -> {
-            infoBar.setTrack(currentTrack.getTitle(), currentMediaPlayer);
-            currentMediaPlayer.play();
+
+        if (waitingThread == null) setWaitingThread(new WaitingThread());
+        waitingThread.setWorking(() -> {
+            Media music = currentTrack.getMusic();
+            currentMediaPlayer = new MediaPlayer(music);
+            currentMediaPlayer.setOnReady(() -> {
+                infoBar.setTrack(currentTrack.getTitle(), currentMediaPlayer);
+                currentMediaPlayer.play();
+            });
+            currentMediaPlayer.setOnEndOfMedia(this::playNextTrack);
         });
-        currentMediaPlayer.setOnEndOfMedia(this::playNextTrack);
+        waitingThread.fire();
     }
 
     public void playNextTrack() {
         if (currentTrackId < tracks.size() - 1) {
             currentTrackId++;
-            currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            if (currentTrackId == 1 && currentTrack == null) {
+                currentTrackId--;
+                currentTrack = tracks.get(currentTrackId);
+            }
+            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            changedId = currentTrackId;
             playCurrentTrack();
         }
     }
@@ -95,7 +113,8 @@ public class Player {
     public void playPreviousTrack() {
         if (currentTrackId > 0) {
             currentTrackId--;
-            currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            changedId = currentTrackId;
             playCurrentTrack();
         }
     }
@@ -106,6 +125,29 @@ public class Player {
 
     public void resumeCurrentTrack() {
         currentMediaPlayer.play();
+    }
+
+    public void setWaitingThread(WaitingThread waitingThread) {
+        this.waitingThread = waitingThread;
+        final WaitingThread.Action opening = waitingThread.getOpening();
+        final WaitingThread.Action closing = waitingThread.getClosing();
+        waitingThread.setOpening(() -> {
+            if (opening != null) opening.action();
+            ControlBar.blockBar();
+        });
+        waitingThread.setClosing(() -> {
+            if (closing != null) closing.action();
+            ControlBar.activateBar();
+        });
+    }
+
+    public void setCurrentTrack(Track track) {
+        if (tracks.contains(track)) {
+            currentTrackId = tracks.indexOf(track);
+            //currentTrack.getTrackPane().setBackground(new Background(new BackgroundFill(Color.valueOf("#e6e6e6"), CornerRadii.EMPTY, Insets.EMPTY)));
+            changedId = currentTrackId;
+            playCurrentTrack();
+        }
     }
 
     private static class InfoBar {
@@ -199,6 +241,18 @@ public class Player {
 
         public static Pane getBar() {
             return container;
+        }
+
+        public static void blockBar() {
+            previous.setDisable(true);
+            current.setDisable(true);
+            next.setDisable(true);
+        }
+
+        public static void activateBar() {
+            previous.setDisable(false);
+            current.setDisable(false);
+            next.setDisable(false);
         }
     }
 }
