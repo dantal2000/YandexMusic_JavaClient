@@ -24,7 +24,10 @@ public class Track {
     }
 
     public void loadMusic() {
-        music = MusicLoader.loadMusic(id);
+        Media sMusic = MusicLoader.findInCache(id);
+        if (sMusic == null)
+            music = MusicLoader.loadMusic(id);
+        else music = sMusic;
     }
 
     public Media getMusic() {

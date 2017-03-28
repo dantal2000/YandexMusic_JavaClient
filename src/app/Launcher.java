@@ -94,8 +94,13 @@ public class Launcher extends Application {
             upSide.setContent(scrollListContent);
             Player player = new Player(downSide, tracks);
             WaitingThread waitingThread = new WaitingThread();
-            waitingThread.setOpening(() -> Platform.runLater(() -> root.getChildren().add(animationOfLoadingPane)));
-            waitingThread.setClosing(() -> Platform.runLater(() -> root.getChildren().remove(animationOfLoadingPane)));
+
+            BorderPane visiblePane = new BorderPane();
+            visiblePane.prefWidthProperty().bind(scene.widthProperty());
+            visiblePane.prefHeightProperty().bind(scene.heightProperty());
+
+            waitingThread.setOpening(() -> Platform.runLater(() -> root.getChildren().add(visiblePane)));
+            waitingThread.setClosing(() -> Platform.runLater(() -> root.getChildren().remove(visiblePane)));
             player.setWaitingThread(waitingThread);
 
             tracks.forEach(track -> track.getTrackPane().setOnMouseClicked(event -> player.setCurrentTrack(track)));

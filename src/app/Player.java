@@ -85,6 +85,7 @@ public class Player {
 
         if (waitingThread == null) setWaitingThread(new WaitingThread());
         waitingThread.setWorking(() -> {
+            Platform.runLater(() -> infoBar.showLoadingText());
             Media music = currentTrack.getMusic();
             currentMediaPlayer = new MediaPlayer(music);
             currentMediaPlayer.setOnReady(() -> {
@@ -177,6 +178,10 @@ public class Player {
                 player.currentTimeProperty().addListener(durationChangeListener);
             });
             player.volumeProperty().bind(volumeSlider.valueProperty());
+        }
+
+        public void showLoadingText() {
+            titleLabel.setText("Загрузка медиа-файла...");
         }
 
         public void removeTrack() {
