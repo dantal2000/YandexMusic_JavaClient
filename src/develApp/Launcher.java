@@ -78,14 +78,22 @@ public class Launcher extends Application {
             TrackAdder trackAdder = new TrackAdder(scrollListContent);
 
             LinkedList<Track> tracks = new LinkedList<>();
+
             int id = 34402006;
             Track track = new Track(id);
             track.setMusic(MusicLoader.findInCache(id));
             tracks.add(track);
+
+            int sId = 34441653;
+            Track sTrack = new Track(sId);
+            sTrack.setMusic(MusicLoader.findInCache(sId));
+            tracks.add(sTrack);
+
             tracks.forEach(trackAdder::add);
 
             upSide.setContent(scrollListContent);
-            Player player = new Player(downSide, tracks);
+            develApp.Player player = new develApp.Player(downSide, tracks);
+            //Player player = new Player(downSide, tracks);
 
             Platform.runLater(() -> {
                 root.getChildren().remove(animationOfLoadingPane);

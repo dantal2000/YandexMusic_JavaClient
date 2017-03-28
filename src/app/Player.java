@@ -1,7 +1,5 @@
 package app;
 
-import javafx.beans.property.ReadOnlyProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
@@ -32,8 +30,8 @@ public class Player {
     public Player(Pane playerPane, LinkedList<Track> tracks) {
         this.playerPane = playerPane;
         this.tracks = tracks;
-        iterator = tracks.listIterator(0);
-        if (iterator.hasNext()) currentTrack = iterator.next();
+        iterator = tracks.listIterator();
+        if (tracks.size() != 0) currentTrack = tracks.get(0);
         playingNow = false;
 
         BorderPane prevTrackButton = new BorderPane();
@@ -42,43 +40,8 @@ public class Player {
 
         List<BorderPane> buttons = new LinkedList<>();
         Collections.addAll(buttons, prevTrackButton, startTrackButton, nextTrackButton);
-        BackgroundFill fill = new BackgroundFill(Color.valueOf("#cdcdcd"), null, null);
 
-        for (int i = 0; i < buttons.size(); i++) {
-            BorderPane button = buttons.get(i);
-            button.setBackground(new Background(fill));
-
-            int width = 45;
-            button.setMinWidth(width);
-            button.setMaxWidth(width);
-
-            int space = 12;
-            button.setLayoutX(i * (width + space));
-
-            int height = 36;
-            button.setMaxHeight(height);
-            button.setMinHeight(height);
-
-            String imagePath;
-            switch (i) {
-                case 0:
-                    imagePath = "img/back_shift.png";
-                    break;
-                case 1:
-                    imagePath = "img/start_shift.png";
-                    break;
-                case 2:
-                    imagePath = "img/next_shift.png";
-                    break;
-                default:
-                    imagePath = "img/loading.gif";
-            }
-            ImageView imageView = new ImageView(new Image(getClass().getResourceAsStream(imagePath)));
-            button.setCenter(imageView);
-            BackgroundFill hoverFill = new BackgroundFill(Color.LIGHTCYAN, null, null);
-            button.setOnMouseEntered(event -> button.setBackground(new Background(hoverFill)));
-            button.setOnMouseExited(event -> button.setBackground(new Background(fill)));
-        }
+        for (int i = 0; i < buttons.size(); i++) controlPanelButtonInit(buttons, i);
 
         startTrackButton.setOnMouseClicked(event -> {
             if (currentTrack != null)
@@ -104,6 +67,43 @@ public class Player {
         if (currentTrack == null || currentTrack.getTitle() == null) infoBar.setTitle("NaN");
         else
             infoBar.setTitle(currentTrack.getTitle());
+    }
+
+    private void controlPanelButtonInit(List<BorderPane> buttons, int i) {
+        BackgroundFill fill = new BackgroundFill(Color.valueOf("#cdcdcd"), null, null);
+        BorderPane button = buttons.get(i);
+        button.setBackground(new Background(fill));
+
+        int width = 45;
+        button.setMinWidth(width);
+        button.setMaxWidth(width);
+
+        int space = 12;
+        button.setLayoutX(i * (width + space));
+
+        int height = 36;
+        button.setMaxHeight(height);
+        button.setMinHeight(height);
+
+        String imagePath;
+        switch (i) {
+            case 0:
+                imagePath = "img/back_shift.png";
+                break;
+            case 1:
+                imagePath = "img/start_shift.png";
+                break;
+            case 2:
+                imagePath = "img/next_shift.png";
+                break;
+            default:
+                imagePath = "img/loading.gif";
+        }
+        ImageView imageView = new ImageView(new Image(getClass().getResourceAsStream(imagePath)));
+        button.setCenter(imageView);
+        BackgroundFill hoverFill = new BackgroundFill(Color.LIGHTCYAN, null, null);
+        button.setOnMouseEntered(event -> button.setBackground(new Background(hoverFill)));
+        button.setOnMouseExited(event -> button.setBackground(new Background(fill)));
     }
 
     private InfoBar infoBar;
@@ -140,7 +140,11 @@ public class Player {
     private boolean nextPlay = true;
 
     private void nextTrack() {
+        playingNow = false;
         nextPlay = true;
+        if (currentMediaPlayer != null) {
+            currentMediaPlayer.stop();
+        }
         if (iterator.hasNext()) {
             currentTrack = iterator.next();
             start();
@@ -148,7 +152,11 @@ public class Player {
     }
 
     private void prevTrack() {
+        playingNow = false;
         nextPlay = false;
+        if (currentMediaPlayer != null) {
+            currentMediaPlayer.stop();
+        }
         if (iterator.hasPrevious()) {
             currentTrack = iterator.previous();
             start();
