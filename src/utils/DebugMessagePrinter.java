@@ -3,9 +3,9 @@ package utils;
 import java.io.PrintStream;
 
 public class DebugMessagePrinter {
+    private final String methodName;
     private StackVoid debugMessage;
     private PrintStream printStream;
-    private final String methodName;
     private int count = -1;
 
     public DebugMessagePrinter(PrintStream printStream) {
@@ -52,13 +52,13 @@ public class DebugMessagePrinter {
                 action.action();
         }
 
-        public interface Action {
-            void action();
-        }
-
         public void deprecate() {
             if (!deprecated) deprecated = true;
             action = null;
+        }
+
+        public interface Action {
+            void action();
         }
     }
 }

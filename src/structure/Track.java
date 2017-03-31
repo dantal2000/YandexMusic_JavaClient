@@ -2,7 +2,6 @@ package structure;
 
 import javafx.scene.layout.Pane;
 import javafx.scene.media.Media;
-import utils.Logger;
 import utils.MusicLoader;
 
 public class Track {
@@ -35,10 +34,6 @@ public class Track {
         return music;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public void setMusic(Media music) {
         this.music = music;
     }
@@ -53,6 +48,10 @@ public class Track {
 
     public String getTitle() {
         return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getCoverUri() {

@@ -1,6 +1,9 @@
 package utils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 
 public class Logger {
     private PrintStream printStream;
@@ -8,6 +11,10 @@ public class Logger {
 
     public Logger(String path) {
         init(path);
+    }
+
+    public Logger() {
+        init("cache/log");
     }
 
     private void init(String path) {
@@ -24,10 +31,6 @@ public class Logger {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public Logger() {
-        init("cache/log");
     }
 
     public PrintStream getPrintStream() {

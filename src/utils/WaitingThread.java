@@ -8,18 +8,6 @@ public class WaitingThread {
     public WaitingThread() {
     }
 
-    public void setOpening(Action opening) {
-        this.opening = opening;
-    }
-
-    public void setClosing(Action closing) {
-        this.closing = closing;
-    }
-
-    public void setWorking(Action working) {
-        this.working = working;
-    }
-
     public void fire() {
         Thread thread = new Thread(() -> {
             if (opening != null) opening.action();
@@ -30,19 +18,31 @@ public class WaitingThread {
         thread.start();
     }
 
-    public static interface Action {
-        void action();
-    }
-
     public Action getOpening() {
         return opening;
+    }
+
+    public void setOpening(Action opening) {
+        this.opening = opening;
     }
 
     public Action getClosing() {
         return closing;
     }
 
+    public void setClosing(Action closing) {
+        this.closing = closing;
+    }
+
     public Action getWorking() {
         return working;
+    }
+
+    public void setWorking(Action working) {
+        this.working = working;
+    }
+
+    public interface Action {
+        void action();
     }
 }

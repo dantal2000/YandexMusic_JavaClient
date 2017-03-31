@@ -1,11 +1,8 @@
 package utils;
 
 import javafx.scene.image.Image;
-import utils.Connector;
-import utils.DebugMessagePrinter;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
 public class ImageLoader {

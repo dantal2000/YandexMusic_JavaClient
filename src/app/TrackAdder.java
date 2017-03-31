@@ -11,13 +11,12 @@ import structure.Track;
 import utils.ImageLoader;
 
 public class TrackAdder {
-    private Pane controlPane;
-    private int count = 0;
-
     private final int paneHeight = 128;
     private final String loadImageSize = "200x200";
     private final int titleLabelLayoutX = 128 + 33;
     private final int infoLabelLayoutY = paneHeight - 18 - 14;
+    private Pane controlPane;
+    private int count = 0;
 
     public TrackAdder(Pane controlPane) {
         this.controlPane = controlPane;

@@ -1,16 +1,11 @@
 package utils;
 
-import com.google.common.base.Charsets;
-import com.google.common.hash.Hashing;
 import javafx.scene.media.Media;
 import org.json.JSONObject;
 
 import java.io.*;
-import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.nio.charset.Charset;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -81,7 +76,7 @@ public class MusicLoader {
                 String hashingString = md5Salt + path.substring(1, path.length()) + s;
                 messagePrinter.println("HashingString = " + hashingString);
 
-                /*MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+                /*MessageDigest messageDigest = MessageDigest.getInstance("org.MD5");
                 messageDigest.reset();
                 messageDigest.update(hashingString.getBytes());
 
@@ -93,7 +88,14 @@ public class MusicLoader {
 
                 String md5HashString = md5Hash.toString();*/
                 //String md5HashString = Hashing.md5().newHasher().putString(hashingString, Charsets.UTF_8).hash().toString();
-                String md5HashString = Hashing.md5().hashString(hashingString, Charsets.UTF_8).toString();
+
+                //String md5HashString = Hashing.md5().hashString(hashingString, Charsets.UTF_8).toString();
+
+                /*org.MD5 md5 = new org.MD5(hashingString);
+                String md5HashString = md5.asHex();*/
+
+                String md5HashString = org.MD5.toHexString(org.MD5.computeMD5(hashingString.getBytes())).toLowerCase();
+
                 messagePrinter.println("Hash = " + md5HashString);
                 String thirdUrl = "https://" + host + "/get-mp3/" + md5HashString + "/" + ts + path + "?track-id=" + trackId;
                 messagePrinter.println("ThirdUrl = " + thirdUrl);
@@ -141,11 +143,6 @@ public class MusicLoader {
         }
     }
 
-    static class MyException extends Throwable {
-        MyException() {
-        }
-    }
-
     private static StringBuilder readStringInputStream(InputStream inputStream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8")));
         StringBuilder stringBuilder = new StringBuilder();
@@ -165,11 +162,24 @@ public class MusicLoader {
         String pathname = "cache/" + trackId + ".mp3";
         File cachedMedia = new File(pathname);
         try {
-            if (cachedMedia.exists())
+            if (cachedMedia.exists() && cachedMedia.length() != 0)
                 return new Media(cachedMedia.toURI().toURL().toString());
+            else {
+                Logger logger = new Logger();
+                try {
+                    return loadMusic(trackId, logger.getPrintStream(), true);
+                } finally {
+                    logger.closeLog();
+                }
+            }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    static class MyException extends Throwable {
+        MyException() {
+        }
     }
 }
