@@ -38,7 +38,7 @@ public class TrackLoader {
                     for (int i = 0; i < tracksToPlay.length(); i++) {
                         JSONObject trackJson = tracksToPlay.getJSONObject(i);
 
-                        int id, durationMs;
+                        int id, durationMs, albumId;
                         String title, coverUri, artistName;
 
                         id = trackJson.getInt("id");
@@ -47,8 +47,9 @@ public class TrackLoader {
                         coverUri = trackJson.getString("coverUri");
 
                         artistName = trackJson.getJSONArray("artists").getJSONObject(0).getString("name");
+                        albumId = trackJson.getJSONArray("albums").getJSONObject(0).getInt("id");
 
-                        Track track = new Track(id, durationMs, title, coverUri, artistName);
+                        Track track = new Track(id, durationMs, albumId, title, coverUri, artistName);
                         messagePrinter.println("Track #" + i + " = " + track.toString());
                         trackList.add(track);
                     }

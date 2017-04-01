@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import structure.Track;
 import structure.TrackLoader;
-import utils.WaitingThread;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -93,15 +92,6 @@ public class Launcher extends Application {
 
             upSide.setContent(scrollListContent);
             Player player = new Player(downSide, tracks);
-            WaitingThread waitingThread = new WaitingThread();
-
-            BorderPane visiblePane = new BorderPane();
-            visiblePane.prefWidthProperty().bind(scene.widthProperty());
-            visiblePane.prefHeightProperty().bind(scene.heightProperty());
-
-            waitingThread.setOpening(() -> Platform.runLater(() -> root.getChildren().add(visiblePane)));
-            waitingThread.setClosing(() -> Platform.runLater(() -> root.getChildren().remove(visiblePane)));
-            player.setWaitingThread(waitingThread);
 
             tracks.forEach(track -> track.getTrackPane().setOnMouseClicked(event -> player.setCurrentTrack(track)));
 

@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class MusicLoader {
-    public static Media loadMusic(int trackId, PrintStream dbg, boolean refresh) {
+    public static Media loadMusic(int trackId, PrintStream dbg) {
         DebugMessagePrinter messagePrinter = new DebugMessagePrinter(dbg);
         try {
-            messagePrinter.println("Переданные параметры = {" + trackId + ", " + dbg + ", " + refresh + "}");
-            String pathname = "cache/" + trackId + ".mp3";
+            messagePrinter.println("Переданные параметры = {" + trackId + ", " + dbg + "}");
+            String pathname = "cache/music/" + trackId + ".mp3";
             File cachedMedia = new File(pathname);
 
             if (cachedMedia.getParentFile().mkdirs() | cachedMedia.createNewFile())
@@ -76,24 +76,6 @@ public class MusicLoader {
                 String hashingString = md5Salt + path.substring(1, path.length()) + s;
                 messagePrinter.println("HashingString = " + hashingString);
 
-                /*MessageDigest messageDigest = MessageDigest.getInstance("org.MD5");
-                messageDigest.reset();
-                messageDigest.update(hashingString.getBytes());
-
-                byte[] digest = messageDigest.digest();
-                BigInteger bigInteger = new BigInteger(1, digest);
-                StringBuilder md5Hash = new StringBuilder(bigInteger.toString(16));
-                while (md5Hash.length() < 32)
-                    md5Hash.insert(0, "0");
-
-                String md5HashString = md5Hash.toString();*/
-                //String md5HashString = Hashing.md5().newHasher().putString(hashingString, Charsets.UTF_8).hash().toString();
-
-                //String md5HashString = Hashing.md5().hashString(hashingString, Charsets.UTF_8).toString();
-
-                /*org.MD5 md5 = new org.MD5(hashingString);
-                String md5HashString = md5.asHex();*/
-
                 String md5HashString = org.MD5.toHexString(org.MD5.computeMD5(hashingString.getBytes())).toLowerCase();
 
                 messagePrinter.println("Hash = " + md5HashString);
@@ -107,23 +89,28 @@ public class MusicLoader {
                 encoding = (data != null && data.getValue1().containsKey("Content-Encoding")) ? "gzip" : "deflate";
                 messagePrinter.println("Encoding = " + encoding);
                 if (thirdInputStream != null) {
-                    OutputStream outputStream = new FileOutputStream(cachedMedia);
-                    if (encoding.equals("gzip")) {
-                        GZIPInputStream gzipInputStream = new GZIPInputStream(thirdInputStream);
-                        int c;
-                        while ((c = gzipInputStream.read()) != -1)
-                            outputStream.write(c);
-                        outputStream.close();
-                        thirdInputStream.close();
-                    } else {
-                        int c;
-                        while ((c = thirdInputStream.read()) != -1)
-                            outputStream.write(c);
-                        outputStream.close();
-                        thirdInputStream.close();
-                    }
+                    Thread downloadingThread = new Thread(() -> {
+                        try {
+                            OutputStream outputStream = new FileOutputStream(cachedMedia);
+                            int c;
+                            if (encoding.equals("gzip")) {
+                                GZIPInputStream gzipInputStream = new GZIPInputStream(thirdInputStream);
+                                while ((c = gzipInputStream.read()) != -1)
+                                    outputStream.write(c);
+                            } else while ((c = thirdInputStream.read()) != -1)
+                                outputStream.write(c);
 
-                    return new Media(cachedMedia.toURI().toURL().toString());
+                            /*outputStream.close();
+                            thirdInputStream.close();*/
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    downloadingThread.setDaemon(true);
+                    downloadingThread.setName("DownloadingThread");
+                    downloadingThread.start();
+
+                    return new Media(cachedMedia.toURI().toString());
                 } else {
                     throw new MyException();
                 }
@@ -155,23 +142,21 @@ public class MusicLoader {
     }
 
     public static Media loadMusic(int trackId) {
-        return loadMusic(trackId, null, false);
+        return loadMusic(trackId, null);
     }
 
     public static Media findInCache(int trackId) {
-        String pathname = "cache/" + trackId + ".mp3";
+        String pathname = "cache/music/" + trackId + ".mp3";
         File cachedMedia = new File(pathname);
         try {
             if (cachedMedia.exists() && cachedMedia.length() != 0)
                 return new Media(cachedMedia.toURI().toURL().toString());
-            else {
-                Logger logger = new Logger();
-                try {
-                    return loadMusic(trackId, logger.getPrintStream(), true);
-                } finally {
-                    logger.closeLog();
-                }
-            }
+            /*Logger logger = new Logger();
+            try {
+                return loadMusic(trackId, logger.getPrintStream(), true);
+            } finally {
+                logger.closeLog();
+            }*/
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }

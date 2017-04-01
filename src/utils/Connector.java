@@ -6,7 +6,10 @@ import java.io.PrintStream;
 import java.net.HttpCookie;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class Connector {
     public static InputStream connect(String url) {
@@ -85,15 +88,13 @@ public class Connector {
             }
 
             messagePrinter.println("Заголовки ответа");
-            headerFields.forEach((s, strings) -> {
-                messagePrinter.println("\t" + s + "\t=\t" + strings);
-            });
+            headerFields.forEach((s, strings) -> messagePrinter.println("\t" + s + "\t=\t" + strings));
 
             //return connection.getInputStream();
             return new CombinatedData<>(connection.getHeaderFields(), connection.getInputStream());
         } catch (IOException e) {
             messagePrinter.println("Произошла неисправимая ошибка! Возвращаемое значение равно null");
-            messagePrinter.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
         } finally {
             messagePrinter.fire();
         }

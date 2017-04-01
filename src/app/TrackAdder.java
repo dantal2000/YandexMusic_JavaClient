@@ -36,7 +36,7 @@ public class TrackAdder {
 
         trackPane.setLayoutY(count * paneHeight);
 
-        trackPane.getChildren().add(getImage(track.getCoverUri(), track.getId()));
+        trackPane.getChildren().add(getImage(track.getCoverUri(), track.getAlbumId()));
         trackPane.getChildren().add(getLine());
         trackPane.getChildren().add(getTitleLabel(track.getTitle()));
         trackPane.getChildren().add(getInfoLabel(track.getDurationMs(), track.getArtistName()));
@@ -51,14 +51,12 @@ public class TrackAdder {
         Image image;
         ImageView imageView;
         if (coverUri == null) {
-            image = ImageLoader.findInCache(trackId);
-            if (image == null)
+            image = ImageLoader.findInCache(trackId, null);
+            if (image == null) {
                 image = new Image(getClass().getResourceAsStream("img/loading.gif"));
-            imageView = new ImageView(image);
-        } else {
-            image = ImageLoader.retrieveImage(coverUri, loadImageSize, trackId);
-            imageView = new ImageView(image);
-        }
+            }
+        } else image = ImageLoader.retrieveImage(coverUri, loadImageSize, trackId);
+        imageView = new ImageView(image);
 
         imageView.setFitHeight(paneHeight);
         imageView.setFitWidth(paneHeight);
