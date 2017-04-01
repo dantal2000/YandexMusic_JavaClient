@@ -30,35 +30,31 @@ public class DebugMessagePrinter {
     }
 
     static class StackVoid {
-        private Action action;
+        private Runnable action;
         private boolean deprecated = false;
 
-        public StackVoid(Action action) {
+        public StackVoid(Runnable action) {
             this.action = action;
         }
 
-        public void addAction(Action action) {
+        public void addAction(Runnable action) {
             if (!deprecated) {
-                final Action cacheAction = this.action;
+                final Runnable cacheAction = this.action;
                 this.action = () -> {
-                    cacheAction.action();
-                    action.action();
+                    cacheAction.run();
+                    action.run();
                 };
             }
         }
 
         public void fire() {
             if (!deprecated)
-                action.action();
+                action.run();
         }
 
         public void deprecate() {
             if (!deprecated) deprecated = true;
             action = null;
-        }
-
-        public interface Action {
-            void action();
         }
     }
 }
