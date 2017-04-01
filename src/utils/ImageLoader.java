@@ -9,12 +9,16 @@ public class ImageLoader {
     public static Image retrieveImage(String uri, String size, int id, PrintStream dbg) {
         DebugMessagePrinter messagePrinter = new DebugMessagePrinter(dbg);
         try {
-            String path = "cache/" + id + ".jpeg";
+            Image inCache = findInCache(id, dbg);
+            if (inCache != null) return inCache;
+
+            String path = "cache/img/" + id + ".jpeg";
             File imageCache = new File(path);
-            if (imageCache.exists()) {
-                messagePrinter.println("Обнаружен кэш изображения " + id);
-                return new Image(new FileInputStream(imageCache));
-            }
+            if (imageCache.getParentFile() != null && imageCache.getParentFile().mkdirs())
+                messagePrinter.println("Поддиректория была успешно создана");
+            if (imageCache.createNewFile())
+                messagePrinter.println("Файл успешно создан");
+
             String url = "http://" + uri.replace("%%", size);
             messagePrinter.println("Url = " + url);
             InputStream inputStream = Connector.connect(url, dbg);
@@ -45,16 +49,25 @@ public class ImageLoader {
         return retrieveImage(uri, size, id, null);
     }
 
-    public static Image findInCache(int id) {
-        String path = "cache/" + id + ".jpeg";
-        File imageCache = new File(path);
-        if (imageCache.exists()) {
-            try {
+    public static Image findInCache(int id, PrintStream dbg) {
+        DebugMessagePrinter messagePrinter = new DebugMessagePrinter(dbg);
+        try {
+            String path = "cache/img/" + id + ".jpeg";
+            messagePrinter.println("Path = " + path);
+            File imageCache = new File(path);
+            if (imageCache.exists()) {
+                messagePrinter.println("Файл присутствует. Возврат файла");
                 return new Image(new FileInputStream(imageCache));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+            } else {
+                messagePrinter.println("Файл отсутствует. Возврат нулевого значения");
+                return null;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            messagePrinter.println("Выполнение завершилось неисправимой ошибкой. Возврат нулевого значения");
+            return null;
+        } finally {
+            messagePrinter.fire();
         }
-        return null;
     }
 }

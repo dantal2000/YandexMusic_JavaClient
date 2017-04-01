@@ -15,7 +15,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 import structure.Track;
-import utils.WaitingThread;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -29,8 +28,6 @@ public class Player {
     private MediaPlayer currentMediaPlayer;
     private InfoBar infoBar;
 
-    private WaitingThread waitingThread;
-
     public Player(Pane playerPane, LinkedList<Track> tracks) {
         this.tracks = tracks;
 
@@ -40,6 +37,7 @@ public class Player {
         Pane controlBar = ControlBar.getBar();
         controlBar.setLayoutX(31);
         controlBar.setLayoutY(12);
+
         ControlBar.previous.setOnMouseClicked(event -> {
             if (currentTrackId > 0) playPreviousTrack();
         });
@@ -65,12 +63,33 @@ public class Player {
 
         infoBar = new InfoBar();
         Pane infoBarContainer = new Pane();
-        int infoBarContainerLayoutX = 159 + 31 + 30;
+        int infoBarContainerLayoutX = 220;
         infoBarContainer.setLayoutX(infoBarContainerLayoutX);
         infoBarContainer.prefWidthProperty().bind(playerPane.widthProperty().subtract(infoBarContainerLayoutX));
 
         infoBar.setContainer(infoBarContainer);
         Platform.runLater(() -> playerPane.getChildren().addAll(controlBar, infoBarContainer));
+
+        Thread watchingThread = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (currentMediaPlayer != null) {
+                    MediaPlayer.Status status = currentMediaPlayer.getStatus();
+                    System.out.println(status);
+                    if (status == MediaPlayer.Status.UNKNOWN) {
+                        Platform.runLater(this::playCurrentTrack);
+                    }
+                    //System.out.println(currentMediaPlayer.currentTimeProperty());
+                }
+            }
+        });
+        watchingThread.setDaemon(true);
+        watchingThread.setName("WatchingThread");
+        watchingThread.start();
     }
 
     public void playCurrentTrack() {
@@ -83,7 +102,7 @@ public class Player {
         Pane trackPane = currentTrack.getTrackPane();
         trackPane.setBackground(new Background(new BackgroundFill(Color.LIMEGREEN, CornerRadii.EMPTY, Insets.EMPTY)));
 
-        if (waitingThread == null) setWaitingThread(new WaitingThread());
+        /*if (waitingThread == null) setWaitingThread(new WaitingThread());
         waitingThread.setWorking(() -> {
             Platform.runLater(() -> infoBar.showLoadingText());
             Media music = currentTrack.getMusic();
@@ -94,7 +113,17 @@ public class Player {
             });
             currentMediaPlayer.setOnEndOfMedia(this::playNextTrack);
         });
-        waitingThread.fire();
+        waitingThread.fire();*/
+
+        infoBar.setTrack(currentTrack);
+        Media music = currentTrack.getMusic();
+        currentMediaPlayer = new MediaPlayer(music);
+        currentMediaPlayer.setOnReady(() -> {
+            infoBar.setPlayer(currentMediaPlayer);
+            currentMediaPlayer.play();
+        });
+        currentMediaPlayer.setOnEndOfMedia(this::playNextTrack);
+
     }
 
     public void playNextTrack() {
@@ -119,20 +148,6 @@ public class Player {
         currentMediaPlayer.play();
     }
 
-    public void setWaitingThread(WaitingThread waitingThread) {
-        this.waitingThread = waitingThread;
-        final WaitingThread.Action opening = waitingThread.getOpening();
-        final WaitingThread.Action closing = waitingThread.getClosing();
-        waitingThread.setOpening(() -> {
-            if (opening != null) opening.action();
-            ControlBar.blockBar();
-        });
-        waitingThread.setClosing(() -> {
-            if (closing != null) closing.action();
-            ControlBar.activateBar();
-        });
-    }
-
     public void setCurrentTrack(Track track) {
         if (tracks.contains(track)) {
             currentTrackId = tracks.indexOf(track);
@@ -145,6 +160,8 @@ public class Player {
         private Slider volumeSlider = new Slider(0, 1, 1);
         private BorderPane volumePane = new BorderPane(volumeSlider);
         private Label titleLabel = new Label("NaN");
+
+        private int durationMs;
 
         {
             titleLabel.setFont(Font.font("Verdana", 14));
@@ -164,17 +181,25 @@ public class Player {
             container.getChildren().addAll(titleLabel, playSlider, volumePane);
         }
 
-        public void setTrack(String trackTitle, MediaPlayer player) {
+        public void setTrack(Track track) {
+            String trackTitle = track.getTitle();
             if (trackTitle != null) titleLabel.setText(trackTitle);
-            double duration = player.getMedia().getDuration().toSeconds();
+            int trackDurationMs = track.getDurationMs();
+            if (trackDurationMs != 0) durationMs = trackDurationMs;
+            else durationMs = Integer.MAX_VALUE;
+
+            System.out.println(track);
+        }
+
+        public void setPlayer(MediaPlayer player) {
             ChangeListener<Duration> durationChangeListener = (observable, oldValue, newValue) ->
-                    playSlider.setValue(newValue.toSeconds() / duration * 100);
+                    playSlider.setValue(newValue.toMillis() / durationMs * 100);
             player.currentTimeProperty().addListener(durationChangeListener);
 
             playSlider.setOnMousePressed(event ->
                     player.currentTimeProperty().removeListener(durationChangeListener));
             playSlider.setOnMouseReleased(event -> {
-                player.seek(Duration.seconds(playSlider.getValue() * duration / 100));
+                player.seek(Duration.seconds(playSlider.getValue() * durationMs / 100));
                 player.currentTimeProperty().addListener(durationChangeListener);
             });
             player.volumeProperty().bind(volumeSlider.valueProperty());

@@ -7,21 +7,20 @@ import java.io.PrintStream;
 
 public class Logger {
     private PrintStream printStream;
-    private String path;
+    private String path = "cache/logs/";
 
-    public Logger(String path) {
-        init(path);
+    public Logger(String name) {
+        init(name);
     }
 
     public Logger() {
-        init("cache/log");
+        init("log");
     }
 
-    private void init(String path) {
-        this.path = path;
-        File file = new File(path);
+    private void init(String name) {
+        File file = new File(path + name);
         try {
-            for (int i = 0; file.exists(); i++) file = new File(path + i);
+            for (int i = 0; file.exists(); i++) file = new File(path + name + i);
 
             if (file.getParentFile() != null && file.getParentFile().mkdirs())
                 System.out.println("Поддиректория лог-файла была создана");
@@ -39,7 +38,6 @@ public class Logger {
     }
 
     public void closeLog() {
-        System.out.println("Логгирование " + path + " закончено");
         printStream.close();
     }
 }

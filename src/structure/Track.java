@@ -5,7 +5,7 @@ import javafx.scene.media.Media;
 import utils.MusicLoader;
 
 public class Track {
-    private int id, durationMs;
+    private int id, durationMs, albumId;
     private String title, coverUri, artistName;
     private Media music;
     private Pane trackPane;
@@ -14,9 +14,10 @@ public class Track {
         this.id = id;
     }
 
-    public Track(int id, int durationMs, String title, String coverUri, String artistName) {
+    public Track(int id, int durationMs, int albumId, String title, String coverUri, String artistName) {
         this.id = id;
         this.durationMs = durationMs;
+        this.albumId = albumId;
         this.title = title;
         this.coverUri = coverUri;
         this.artistName = artistName;
@@ -79,6 +80,11 @@ public class Track {
                 ", coverUri='" + coverUri + '\'' +
                 ", artistName='" + artistName + '\'' +
                 ", music=" + music +
+                ", albumId=" + albumId +
                 '}';
+    }
+
+    public int getAlbumId() {
+        return albumId;
     }
 }
